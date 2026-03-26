@@ -47,8 +47,8 @@ class TextGeneration:
         self.no_food = "asset/frame/no_food.png"
         self.logo_frame = "asset/frame/logo.png"
         self.chef_frames = {
-            "scheherazade": "asset/frame/food-image-logo-bg-s.png",
-            "giovanni": "asset/frame/food-image-logo-bg-g.png",
+            "Sunil": "asset/frame/food-image-logo-bg-s.png",
+            "Grover": "asset/frame/food-image-logo-bg-g.png",
         }
         self.fonts = {
             "title": ImageFont.truetype("asset/fonts/Poppins-Bold.ttf", 70),
@@ -187,78 +187,65 @@ def main():
     st.set_page_config(
         page_title="Chef Transformer",
         page_icon="🍲",
-        layout="wide",
-        initial_sidebar_state="expanded"
+        layout="centered"  # changed from wide
     )
+
     generator = load_text_generator()
-    # if hasattr(st, "session_state"):
-    #     if 'get_random_frame' not in st.session_state:
-    #         st.session_state.get_random_frame = generator.frames[0]
-    # else:
-    #     get_random_frame = generator.frames[0]
 
     remote_css("https://fonts.googleapis.com/css2?family=Montserrat:wght@400;600&family=Poppins:wght@600&display=swap")
     local_css("asset/css/style.css")
 
-    col1, col2 = st.columns([6, 4])
-    with col2:
-        st.image(load_image_from_local("asset/images/chef-transformer-transparent.png"), width=300)
-        st.markdown(meta.SIDEBAR_INFO, unsafe_allow_html=True)
+    # 🔥 Header (clean + centered)
+    st.markdown(meta.HEADER_INFO, unsafe_allow_html=True)
 
-        with st.expander("Where did this story start?", expanded=True):
-            st.markdown(meta.STORY, unsafe_allow_html=True)
-
-    with col1:
-        st.markdown(meta.HEADER_INFO, unsafe_allow_html=True)
-
-        st.markdown(meta.CHEF_INFO, unsafe_allow_html=True)
-        chef = st.selectbox("Choose your chef", index=0, options=["Chef Scheherazade", "Chef Giovanni"])
-
-        prompts = list(EXAMPLES.keys()) + ["Custom"]
-        prompt = st.selectbox(
-            'Examples (select from this list)',
-            prompts,
-            # index=len(prompts) - 1,
-            index=0
-        )
-
-        if prompt == "Custom":
-            prompt_box = ""
-        else:
-            prompt_box = EXAMPLES[prompt]
-
-        items = st.text_area(
-            'Insert your food items here (separated by `,`): ',
-            pure_comma_separation(prompt_box, return_list=False),
-        )
-        items = pure_comma_separation(items, return_list=False)
-        entered_items = st.empty()
-
-    recipe_button = st.button('Get Recipe!')
-
-    st.markdown(
-        "<hr />",
-        unsafe_allow_html=True
+    st.markdown("### 👨‍🍳 Choose Your Chef")
+    chef = st.selectbox(
+        "",
+        index=0,
+        options=["Chef Scheherazade", "Chef Giovanni"]
     )
+
+    # Examples
+    prompts = list(EXAMPLES.keys()) + ["Custom"]
+    prompt = st.selectbox(
+        '🍽️ Try an Example',
+        prompts,
+        index=0
+    )
+
+    if prompt == "Custom":
+        prompt_box = ""
+    else:
+        prompt_box = EXAMPLES[prompt]
+
+    # Input
+    items = st.text_area(
+        '📝 Enter Ingredients (comma separated)',
+        pure_comma_separation(prompt_box, return_list=False),
+        height=120
+    )
+
+    items = pure_comma_separation(items, return_list=False)
+    entered_items = st.empty()
+
+    # Button (center focus)
+    recipe_button = st.button('🔥 Generate Recipe')
+
+    st.markdown("<hr />", unsafe_allow_html=True)
+
+    # 🔥 OUTPUT SECTION
     if recipe_button:
-        # if hasattr(st, "session_state"):
-        #     st.session_state.get_random_frame = generator.frames[random.randint(0, len(generator.frames)) - 1]
-        # else:
-        #     get_random_frame = generator.frames[random.randint(0, len(generator.frames)) - 1]
+        entered_items.markdown("**Generating recipe for:** " + items)
 
-        entered_items.markdown("**Generate recipe for:** " + items)
-        with st.spinner("Generating recipe..."):
-
+        with st.spinner("👨‍🍳 Cooking your recipe..."):
             if not isinstance(items, str) or not len(items) > 1:
-                entered_items.markdown(
-                    f"**{chef}** would like to know what ingredients do you like to use in "
-                    f"your food? "
-                )
+                st.warning("Please enter valid ingredients!")
             else:
                 gen_kw = chef_top if chef == "Chef Scheherazade" else chef_beam
                 generated_recipe = generator.generate(items, gen_kw)
 
                 title = generated_recipe["title"]
+
                 food_image = generated_recipe["image"]
                 food_image = load_image_from_url(food_image, rgba_mode=True, default_image=generator.no_food)
                 food_image = image_to_base64(food_image)
@@ -267,53 +254,37 @@ def main():
                     generated_recipe["ingredients"],
                     pure_comma_separation(items, return_list=True)
                 )
-                # ingredients = [textwrap.fill(item, 10).replace("\n", "<br />   ") for item in ingredients]
 
                 directions = ext.directions(generated_recipe["directions"])
-                # directions = [textwrap.fill(item, 70).replace("\n", "<br />   ") for item in directions]
-
                 generated_recipe["by"] = chef
 
-                r1, r2 = st.columns([6, 2])
+                # 🔥 NEW CLEAN LAYOUT (stacked instead of side-by-side)
 
-                with r2:
-                    # st.write(st.session_state.get_random_frame)
-                    # if hasattr(st, "session_state"):
-                    #     recipe_post = generator.generate_frame(generated_recipe, st.session_state.get_random_frame)
-                    # else:
-                    #     recipe_post = generator.generate_frame(generated_recipe, get_random_frame)
+                st.markdown(f"## 🍜 {title}")
 
-                    recipe_post = generator.generate_frame(generated_recipe, chef.split()[-1])
+                st.markdown(
+                    f"<div style='text-align:center'><img src='{food_image}' width='250'/></div>",
+                    unsafe_allow_html=True
+                )
 
-                    st.image(
-                        recipe_post,
-                        # width=500,
-                        caption="Save image and share on your social media",
-                        use_column_width="auto",
-                        output_format="PNG"
-                    )
+                st.markdown("### 🧂 Ingredients")
+                for item in ingredients:
+                    st.write(f"• {item}")
 
-                with r1:
-                    st.markdown(
-                        " ".join([
-                            "<div class='r-text-recipe'>",
-                            "<div class='food-title'>",
-                            f"<img src='{food_image}' />",
-                            f"<h2 class='font-title text-bold'>{title}</h2>",
-                            "</div>",
-                            '<div class="divider"><div class="divider-mask"></div></div>',
-                            "<h3 class='ingredients font-body text-bold'>Ingredients</h3>",
-                            "<ul class='ingredients-list font-body'>",
-                            " ".join([f'<li>{item}</li>' for item in ingredients]),
-                            "</ul>",
-                            "<h3 class='directions font-body text-bold'>Directions</h3>",
-                            "<ol class='ingredients-list font-body'>",
-                            " ".join([f'<li>{item}</li>' for item in directions]),
-                            "</ol>",
-                            "</div>"
-                        ]),
-                        unsafe_allow_html=True
-                    )
+                st.markdown("### 👨‍🍳 Directions")
+                for i, step in enumerate(directions, 1):
+                    st.write(f"{i}. {step}")
+
+                # Optional image card (kept but cleaner)
+                st.markdown("### 📸 Shareable Recipe Card")
+
+                recipe_post = generator.generate_frame(generated_recipe, chef.split()[-1])
+
+                st.image(
+                    recipe_post,
+                    caption="Save & share your recipe!",
+                    use_column_width=True
+                )
 
 
 if __name__ == '__main__':
